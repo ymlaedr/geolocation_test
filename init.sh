@@ -38,7 +38,6 @@ POST_EXEC_SCRIPT_AARCH64="\
 EXEC_SCRIPT_APP="${PRE_EXEC_SCRIPT} && python app.py";
 EXEC_SCRIPT_SH="${PRE_EXEC_SCRIPT} && sh";
 EXEC_SCRIPT_DB_UPGRADE="${PRE_EXEC_SCRIPT} && flask db upgrade";
-SQLITE3_PATH='${PRJ_DIR}/geolocation_test.sqlite3';
 
 
 
@@ -65,3 +64,15 @@ exec_app() { _exec -c "${EXEC_SCRIPT_APP}"; }
 
 ## Docker で開発環境のシェルを起動
 exec_sh() { _exec -c "${EXEC_SCRIPT_SH}"; }
+
+download_statics() {
+	declare -A ESM_JS_LIST=(
+		['socket.io.esm.min.js']='https://cdn.socket.io/4.3.2/socket.io.esm.min.js'
+		['vue.esm-browser.js']='https://unpkg.com/vue@3.2.47/dist/vue.esm-browser.js'
+	);
+
+	for ESM_JS in ${!ESM_JS_LIST[@]};
+	do
+		curl --output "${PRJ_DIR}/static/${ESM_JS}" ${ESM_JS_LIST[${ESM_JS}]}
+	done
+}
