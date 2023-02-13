@@ -1,41 +1,127 @@
 <html>
-  <head>
-    <title>FlaskでWebSocket</title>
-  </head>
-  <body>
-    <div id="chat">
-      <label id="status"></label>
-      <p>接続者数: <span id="user_count">--</span>人</p>
-      <textarea id="text">initialized.</textarea>
+
+<head>
+  <title>FlaskでWebSocket</title>
+</head>
+
+<body>
+  <div id="chat">
+    <label id="status"></label>
+    <p>接続者数: <span id="user_count">--</span>人</p>
+    <textarea id="text">initialized.</textarea>
+    <button id="start">開始</button>
+    <button id="stop">終了</button>
+    <div>
+      <label id="info"></label>
     </div>
+    <div><label id="recent_geo_6"></label></div>
+    <div><label id="recent_geo_5"></label></div>
+    <div><label id="recent_geo_4"></label></div>
+    <div><label id="recent_geo_3"></label></div>
+    <div><label id="recent_geo_2"></label></div>
+    <div><label id="recent_geo_1"></label></div>
+  </div>
 
-    <script type="module" charset="utf-8">
-      import { io } from "/static/socket.io.esm.min.js";
+  <script type="module" charset="utf-8">
+    import { io } from "/static/socket.io.esm.min.js";
 
-      const socket = io();
+    const socket = io();
 
-      // 接続された
-      socket.on("connect", () => {
-        document.querySelector('label#status').textContent = `socket connected?: ${socket.connected}`;
-      });
+    // 接続された
+    socket.on("connect", () => {
+      document.querySelector(
+        "label#status"
+      ).textContent = `socket connected?: ${socket.connected}`;
+    });
 
-      // 接続者数の更新
-      socket.on("count_update", function (msg) {
-        document.querySelector('span#user_count').textContent = msg.user_count;
-      });
+    // 接続者数の更新
+    socket.on("count_update", function (msg) {
+      document.querySelector("span#user_count").textContent = msg.user_count;
+    });
 
-      // テキストエリアの更新
-      socket.on("text_update", function (msg) {
-        console.log(msg, document.querySelector('textarea#text').value);
-        document.querySelector('textarea#text').value = msg.text;
-      });
+    // テキストエリアの更新
+    socket.on("text_update", function (msg) {
+      console.log(msg, document.querySelector("textarea#text").value);
+      document.querySelector("textarea#text").value = msg.text;
+    });
 
-      // テキストエリアが変更されると呼び出される
-      document.querySelector('textarea#text').addEventListener('input', function(e) {
+    // テキストエリアが変更されると呼び出される
+    document
+      .querySelector("textarea#text")
+      .addEventListener("input", function (e) {
         socket.emit("text_update_request", { text: e.target.value });
       });
 
+    let watchId = null;
 
-    </script>
-  </body>
+    const sendPosition = function ({ coords, timestamp }) {
+      document.querySelector(
+        "label#info"
+      ).textContent = `started. watchId:${watchId} time:${new Date(
+        timestamp
+      ).toISOString()}`;
+      document.querySelector("label#recent_geo_1").textContent =
+        document.querySelector("label#recent_geo_2").textContent;
+      document.querySelector("label#recent_geo_2").textContent =
+        document.querySelector("label#recent_geo_3").textContent;
+      document.querySelector("label#recent_geo_3").textContent =
+        document.querySelector("label#recent_geo_4").textContent;
+      document.querySelector("label#recent_geo_4").textContent =
+        document.querySelector("label#recent_geo_5").textContent;
+      document.querySelector("label#recent_geo_5").textContent =
+        document.querySelector("label#recent_geo_6").textContent;
+      document.querySelector("label#recent_geo_6").textContent = `${new Date(
+        timestamp
+      ).toISOString()}, accuracy: coords.accuracy, altitude: ${coords.altitude
+        }, altitudeAccuracy: ${coords.altitudeAccuracy}, heading: ${coords.heading
+        }, latitude: ${coords.latitude}, longitude: ${coords.longitude
+        }, speed(km): ${coords.speed*3.6},`;
+      socket.emit("geolocation_record_request", {
+        timestamp: new Date(timestamp).toISOString(),
+        accuracy: coords.accuracy,
+        altitude: coords.altitude,
+        altitudeAccuracy: coords.altitudeAccuracy,
+        heading: coords.heading,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        speed: coords.speed,
+      });
+    };
+
+    document
+      .querySelector("button#start")
+      .addEventListener("click", function () {
+        if (!watchId) {
+          document.querySelector(
+            "label#info"
+          ).textContent = `starting... watchId:${watchId}`;
+          watchId = navigator.geolocation.watchPosition(
+            sendPosition,
+            function () { },
+            {
+              enableHighAccuracy: true,
+              maximumAge: 30000,
+              timeout: 27000,
+            }
+          );
+          document.querySelector(
+            "label#info"
+          ).textContent = `started. watchId:${watchId}`;
+        }
+      });
+
+    document
+      .querySelector("button#stop")
+      .addEventListener("click", function () {
+        if (watchId) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+        document.querySelector(
+          "label#info"
+        ).textContent = `stopped. watchId:${watchId}`;
+        watchId = null;
+      });
+  </script>
+</body>
+
 </html>

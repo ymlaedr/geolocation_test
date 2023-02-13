@@ -4,8 +4,9 @@
 import os
 import time
 from datetime import datetime
+from hashlib import md5
 
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, make_response
 from flask_socketio import SocketIO, send, emit
 
 from flask_sqlalchemy import SQLAlchemy
@@ -44,8 +45,8 @@ class TimestampMixin(object):
 
 class GeolocationRecorder(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
+    md5_code = db.Column(db.String, nullable=False)
     user_agent = db.Column(db.String, nullable=False)
-    cookie_id = db.Column(db.String, nullable=False)
 
     def __repr__(self):
         return '<GeolocationRecorder id:{} [{}] [{}] >'.format(self.id, self.user_agent, self.cookie_id)
@@ -55,10 +56,7 @@ class GeolocationRecorder(db.Model, TimestampMixin):
 class GeolocationCoordinates(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, nullable=False)
-    geolocation_recorder_id = db.Column(
-        'geolocation_recorder_id',
-        db.Integer,
-        db.ForeignKey('geolocation_recorder.id', onupdate='CASCADE', ondelete='CASCADE'))
+    geolocation_recorder_md5_code = db.Column(db.String,)
     latitude = db.Column(db.Double)
     longitude = db.Column(db.Double,)
     altitude = db.Column(db.Double,)
@@ -74,7 +72,10 @@ class GeolocationCoordinates(db.Model, TimestampMixin):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    resp = make_response(render_template('index.html'))
+    if request.cookies.get('md5_code') is None:
+        resp.set_cookie('md5_code', md5(bytes(str(time.time()), 'utf-8')).hexdigest())
+    return resp
 
 
 
@@ -114,6 +115,24 @@ def text_update_request(json):
     # 全員向けに送信すると入力の途中でテキストエリアが変更されて日本語入力がうまくできない
     emit('text_update', {'text': text}, broadcast=True, include_self=False)
 
+# 位置情報取得時に実行
+@socketio.on('geolocation_record_request')
+def geolocation_record_request(coords):
+    request.cookies.get('md5_code')
+    print(request.cookies.get('md5_code'), coords)
+
+    db.session.add(GeolocationCoordinates(**{
+        'geolocation_recorder_md5_code': request.cookies.get('md5_code'),
+        'timestamp': datetime.fromisoformat(coords['timestamp']),
+        'accuracy': coords['accuracy'],
+        'altitude': coords['altitude'],
+        'altitudeAccuracy': coords['altitudeAccuracy'],
+        'heading': coords['heading'],
+        'latitude': coords['latitude'],
+        'longitude': coords['longitude'],
+        'meter_per_second': coords['speed']
+    }))
+    db.session.commit()
 
 
 if __name__ == '__main__':
