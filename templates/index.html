@@ -3,40 +3,39 @@
     <title>FlaskでWebSocket</title>
   </head>
   <body>
-    <p>現在の接続者数<span id="user_count"></span>人</p>
-    <textarea id="text" name="text" rows="10" cols="60"></textarea>
-
-    <div id="app">{{ message }}</div>
+    <div id="chat">
+      <label id="status"></label>
+      <p>接続者数: <span id="user_count">--</span>人</p>
+      <textarea id="text">initialized.</textarea>
+    </div>
 
     <script type="module" charset="utf-8">
-      import { io } from '/static/socket.io.esm.min.js';
-      import { createApp } from '/static/vue.esm-browser.js';
-
-      createApp({
-        data() {
-          return {
-            message: 'Hello Vue!'
-          }
-        }
-      }).mount('#app')
+      import { io } from "/static/socket.io.esm.min.js";
 
       const socket = io();
 
+      // 接続された
+      socket.on("connect", () => {
+        document.querySelector('label#status').textContent = `socket connected?: ${socket.connected}`;
+      });
+
       // 接続者数の更新
-      socket.on('count_update', function(msg) {
-        $('#user_count').html(msg.user_count);
+      socket.on("count_update", function (msg) {
+        document.querySelector('span#user_count').textContent = msg.user_count;
       });
 
       // テキストエリアの更新
-      socket.on('text_update', function(msg) {
-        $('#text').val(msg.text);
+      socket.on("text_update", function (msg) {
+        console.log(msg, document.querySelector('textarea#text').value);
+        document.querySelector('textarea#text').value = msg.text;
       });
 
       // テキストエリアが変更されると呼び出される
-      $('#text').on('change keyup input', function() {
-        socket.emit('text_update_request', {text: $(this).val()});
+      document.querySelector('textarea#text').addEventListener('input', function(e) {
+        socket.emit("text_update_request", { text: e.target.value });
       });
-    </script>
 
+
+    </script>
   </body>
 </html>

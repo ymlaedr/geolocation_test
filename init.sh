@@ -69,6 +69,7 @@ download_statics() {
 	declare -A ESM_JS_LIST=(
 		['socket.io.esm.min.js']='https://cdn.socket.io/4.3.2/socket.io.esm.min.js'
 		['vue.esm-browser.js']='https://unpkg.com/vue@3.2.47/dist/vue.esm-browser.js'
+		['socket.io.esm.min.js.map']='http://cdn.socket.io/4.5.3/socket.io.esm.min.js.map'
 	);
 
 	for ESM_JS in ${!ESM_JS_LIST[@]};

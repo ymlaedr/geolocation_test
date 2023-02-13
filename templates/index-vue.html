@@ -1,0 +1,68 @@
+<html>
+  <head>
+    <title>FlaskでWebSocket</title>
+  </head>
+  <body>
+    <div id="chat">
+      <p>接続者数: {{ userCount }}人</p>
+      <textarea @model="textarea"></textarea>
+      <label>{{ textarea }}</label>
+    </div>
+
+    <script type="module" charset="utf-8">
+      import { io } from "/static/socket.io.esm.min.js";
+      import { createApp, h } from "/static/vue.esm-browser.js";
+
+      export const app = createApp({
+        data() {
+          return {
+            userCount: 0,
+            textarea: "initialized.",
+            socket: io(),
+          };
+        },
+        mounted() {
+          console.log("mounted", this.userCount, this.textarea);
+          // 接続された
+          this.socket.on("connect", () => {
+            console.log("socket connection: ", this.socket.connected); // true
+          });
+
+          // 接続者数の更新
+          this.socket.on("count_update", function (msg) {
+            console.log("count_update", msg, app.userCount);
+            app.userCount = msg.user_count;
+            console.log("count_update", msg, app.userCount);
+          });
+
+          // テキストエリアの更新
+          this.socket.on("text_update", function (msg) {
+            console.log("text_update", msg, app.textarea);
+            app.textarea = msg.text;
+            console.log("text_update", msg, app.textarea);
+          });
+        },
+        methods: {
+          // テキストエリアが変更されると呼び出される
+          changeTextarea: function (text) {
+            console.log("text_update_request", text);
+            this.socket.emit("text_update_request", { text });
+          },
+        },
+        // render() {
+        //   return [
+        //     h("p", `現在の接続者数: ${this.userCount}人`),
+        //     h("textarea", { rows: "10", cols: "60" }, this.textarea),
+        //     h("label", this.textarea),
+        //   ];
+        // },
+      });
+      app.mount("#chat");
+
+      app.config.errorHandler = (err, instance, info) => {
+        // トラッキングサービスへエラーを報告する
+        console.log(err, instance, info);
+      }
+    </script>
+  </body>
+</html>
