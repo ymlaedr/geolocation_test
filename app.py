@@ -15,6 +15,7 @@ from sqlalchemy.ext.declarative import declared_attr
 
 
 
+uri_prefix = os.environ.get('URI_PATH') if os.environ.get('URI_PATH') is not None else ''
 basedir = os.path.abspath(os.path.dirname(__file__))
 sqlite3_filename = 'geolocation_test.sqlite3'
 
@@ -70,9 +71,9 @@ class GeolocationCoordinates(db.Model, TimestampMixin):
 
 
 
-@app.route('/')
+@app.route(f'/{uri_prefix}')
 def index():
-    resp = make_response(render_template('index.html'))
+    resp = make_response(render_template('index.html', uri_prefix=uri_prefix))
     if request.cookies.get('md5_code') is None:
         resp.set_cookie('md5_code', md5(bytes(str(time.time()), 'utf-8')).hexdigest())
     return resp
