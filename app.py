@@ -138,4 +138,4 @@ def geolocation_record_request(coords):
 
 if __name__ == '__main__':
     # 本番環境ではeventletやgeventを使うらしいが簡単のためデフォルトの開発用サーバーを使う
-    socketio.run(app, host='0.0.0.0', port=8080, debug=True)
+    socketio.run(app, host='0.0.0.0', port=8080, keyfile='server.key', certfile='server.crt', debug=True)

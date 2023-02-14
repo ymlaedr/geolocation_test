@@ -9,6 +9,23 @@
 PRJ_DIR=$(cd $(dirname ${BASH_SOURCE:-$0}); pwd);
 
 PYTHON_EXEC_IMAGE='3.11.1-alpine3.17';
+
+EXEC_SCRIPT_SSL_GEN="\
+	apk add \
+	  --no-cache \
+	  --update-cache \
+	  --virtual .exec_sslgen_dependencies \
+	    openssl \
+	 && \
+	openssl genrsa -out server.key \
+	 && \
+	openssl req -new -key server.key -out server.csr -subj '/C=JP/ST=Tokyo/L=Minato City/O=TeX2e/CN=mytest.example.com' \
+	 && \
+	echo 'subjectAltName = DNS:mytest.example.com, IP:192.168.0.169' > san.txt \
+	 && \
+	openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt -extfile san.txt \
+	 && \
+	openssl x509 -text -in server.crt -noout";
 PRE_EXEC_SCRIPT_AARCH64="\
 	apk add \
 	  --no-cache \
@@ -22,11 +39,14 @@ PRE_EXEC_SCRIPT_AARCH64="\
 	  --no-cache \
 	  --update-cache \
 	  --virtual .install_pip_requirements_dependencies \
+	    openssl \
 	    alpine-sdk";
 PRE_EXEC_SCRIPT="\
 	pip install --upgrade pip \
 	 && \
 	pip install -r requirements.txt";
+POST_EXEC_SCRIPT="\
+	apk del --purge .exec_sslgen_dependencies";
 POST_EXEC_SCRIPT_AARCH64="\
 	apk del --purge .install_pip_requirements_dependencies";
 [ "$(arch)" = 'aarch64' ] && PRE_EXEC_SCRIPT="\
@@ -55,6 +75,8 @@ _exec() {
 		-it python:${PYTHON_EXEC_IMAGE} \
 			sh "${@}";
 }
+
+exec_ssl_gen() { _exec -c "${EXEC_SCRIPT_SSL_GEN}"; }
 
 ## Docker で flask db upgrade を実行
 exec_db_upgrade() { _exec -c "${EXEC_SCRIPT_DB_UPGRADE}"; }

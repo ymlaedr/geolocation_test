@@ -135,3 +135,7 @@ dmypy.json
 
 # static files
 static/*
+san.txt
+server.crt
+server.csr
+server.key
